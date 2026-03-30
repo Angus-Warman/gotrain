@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Angus-Warman/gotrain/config"
+	"github.com/Angus-Warman/gotrain/db"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +15,9 @@ func main() {
 		Short: "gotrain: go boilerplate generator",
 	}
 
-	addModelCommands(rootCmd)
-	addDBCommands(rootCmd)
+	addFlags(rootCmd)
+
+	db.AddCommands(rootCmd)
 
 	err := rootCmd.Execute()
 
@@ -22,4 +25,22 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func addFlags(root *cobra.Command) {
+	root.PersistentFlags().StringVarP(
+		&config.AppPath,
+		"path",
+		"p",
+		"",
+		"target app folder path",
+	)
+
+	root.PersistentFlags().StringVarP(
+		&config.DBPath,
+		"db-path",
+		"d",
+		"./data.db",
+		"target database path",
+	)
 }
