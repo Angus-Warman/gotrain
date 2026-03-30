@@ -124,7 +124,7 @@ func runMigrations(db *gorm.DB, migrationsPath string) error {
 		sql, err := os.ReadFile(f)
 
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		_, err = sqlDB.Exec(string(sql))
