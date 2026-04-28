@@ -25,6 +25,11 @@ func createModelProperty(propertyString string) (ModelProperty, error) {
 	tags := []string{}
 
 	for _, part := range parts[1:] {
+		if value, ok := strings.CutPrefix(part, "default="); ok {
+			tags = append(tags, "default:"+value)
+			continue
+		}
+
 		switch part {
 		case "required":
 			tags = append(tags, "not null")
@@ -105,7 +110,6 @@ var htmlTypeMap = map[string]string{
 	"float32":   "number",
 	"float64":   "number",
 	"time.Time": "date",
-	// "[]byte":     reflect.TypeFor[[]byte](),
 }
 
 type Property struct {
@@ -137,8 +141,14 @@ func getModelProperties(appPath, modelName string) ([]Property, error) {
 			htmlType = "text"
 		}
 
-		if strings.ToLower(field.Name) == "email" {
+		fieldName := strings.ToLower(field.Name)
+
+		if strings.Contains(fieldName, "email") {
 			htmlType = "email"
+		}
+
+		if strings.Contains(fieldName, "phone") {
+			htmlType = "tel"
 		}
 
 		property := Property{

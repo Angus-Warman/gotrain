@@ -80,6 +80,15 @@ func TestModelPropertiesFromStrings(t *testing.T) {
 			input: []string{},
 			want:  []ModelProperty{},
 		},
+		{
+			input: []string{"status:default='active'", "count:int:default=0", "enabled:bool:default=true", "score:float:required:default=0.0"},
+			want: []ModelProperty{
+				{Name: "Status", Type: "string", Tag: "`gorm:\"default:'active'\"`"},
+				{Name: "Count", Type: "int", Tag: "`gorm:\"default:0\"`"},
+				{Name: "Enabled", Type: "bool", Tag: "`gorm:\"default:true\"`"},
+				{Name: "Score", Type: "float32", Tag: "`gorm:\"not null;default:0.0\"`"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
