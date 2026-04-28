@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Angus-Warman/gotrain/ext"
+	"github.com/Angus-Warman/gotrain/filing"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -34,12 +35,12 @@ func (l sqlLogger) Info(context.Context, string, ...any)             {}
 func (l sqlLogger) Warn(context.Context, string, ...any)             {}
 func (l sqlLogger) Error(context.Context, string, ...any)            {}
 
-func GenerateMigration(appFolder string) error {
-	slog.Debug("Generating migrations...")
+func GenerateMigration(appPath string) error {
+	slog.Debug("Generating migrations")
 
-	migrationsFolder := path.Join(appFolder, "migrations")
+	migrationsFolder := filepath.Join(appPath, "migrations")
 
-	err := setupMigrationsFolder(migrationsFolder)
+	err := filing.CopyStaticToFolder("0_CREATE_TABLE___migrations.sql", appPath, "migrations")
 
 	if err != nil {
 		return err
@@ -60,7 +61,7 @@ func GenerateMigration(appFolder string) error {
 	}
 
 	// 3. Find and parse the models
-	models, err := ext.ParseModels(appFolder)
+	models, err := ext.ParseModels(appPath)
 
 	if err != nil {
 		return err
@@ -83,9 +84,11 @@ func GenerateMigration(appFolder string) error {
 
 	// 5. Create a file
 	words := strings.Fields(strings.ReplaceAll(buf.String(), "`", ""))
+
 	if len(words) > 3 {
 		words = words[:3]
 	}
+
 	slug := strings.Join(words, "_")
 
 	fileName := fmt.Sprintf("%d_%s.sql", time.Now().UTC().Unix(), slug)
@@ -101,19 +104,6 @@ func GenerateMigration(appFolder string) error {
 	slog.Debug("Migration written to %s", "file", fileName)
 
 	return err
-}
-
-func setupMigrationsFolder(migrationsFolder string) error {
-	err := os.MkdirAll(migrationsFolder, 0755)
-
-	if err != nil {
-		return err
-	}
-
-	src := "./static/0_CREATE_TABLE___migrations.sql"
-	dst := path.Join(migrationsFolder, "0_CREATE_TABLE___migrations.sql")
-
-	return ext.Copy(src, dst)
 }
 
 func RunMigrations(db *gorm.DB, appPath string) error {
@@ -148,7 +138,7 @@ func RunMigrations(db *gorm.DB, appPath string) error {
 			return err
 		}
 
-		slog.Info("Applied %s", "migration", f)
+		slog.Info("Applied: " + f)
 	}
 
 	return nil

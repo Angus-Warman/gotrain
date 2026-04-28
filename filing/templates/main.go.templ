@@ -30,7 +30,7 @@ func getEnv(key, fallback string) string {
 func main() {
 	dbPath := getEnv("DB_PATH", "./data/data.db")
 	port := getEnv("PORT", "8080")
-	addr := fmt.Sprintf("%s:", port)
+	addr := fmt.Sprintf(":%s", port)
 
 	db, err := openDB(dbPath)
 

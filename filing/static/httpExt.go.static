@@ -35,15 +35,8 @@ func ParseID(r *http.Request) (uint, bool) {
 	return uint(id), true
 }
 
-func WriteTemplate(w http.ResponseWriter, templatePath string, data any) {
-	tmpl, err := template.ParseFiles(templatePath)
-
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	err = tmpl.Execute(w, data)
+func WriteTemplate(w http.ResponseWriter, tmpl *template.Template, data any) {
+	err := tmpl.Execute(w, data)
 
 	if err != nil {
 		WriteError(w, err)
@@ -57,7 +50,7 @@ func WriteError(w http.ResponseWriter, err error) {
 }
 
 func WriteMessage(w http.ResponseWriter, status int, message string) {
-	if (status >= 400) {
+	if status >= 400 {
 		slog.Warn("response", slog.Int("status", status), slog.String("message", message))
 	} else {
 		slog.Debug("response", slog.Int("status", status), slog.String("message", message))

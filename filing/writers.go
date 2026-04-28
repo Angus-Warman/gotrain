@@ -124,11 +124,13 @@ func CopyStaticToFolder(target, appPath, folder string) error {
 	dst := filepath.Join(appPath, folder, target)
 
 	data, err := staticFS.ReadFile(src)
+
 	if err != nil {
 		return err
 	}
 
 	err = os.MkdirAll(filepath.Dir(dst), 0o755)
+
 	if err != nil {
 		return err
 	}

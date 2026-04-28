@@ -1,6 +1,8 @@
 package {{.modelName}}
 
 import (
+	"embed"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -13,8 +15,28 @@ type {{.ModelName}}Handler struct {
 	store {{.ModelName}}Store
 }
 
+//go:embed page.html
+var pageHTML []byte
+
 func (h *{{.ModelName}}Handler) page(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./{{.modelName}}/page.html")
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(pageHTML)
+}
+
+//go:embed *.templ
+var templFiles embed.FS
+
+var (
+	tableTemplate      *template.Template
+	editDialogTemplate *template.Template
+	addDialogTemplate  *template.Template
+)
+
+func init() {
+	tmpls := template.Must(template.ParseFS(templFiles, "*.templ"))
+	tableTemplate = tmpls.Lookup("table.html.templ")
+	editDialogTemplate = tmpls.Lookup("editDialog.html.templ")
+	addDialogTemplate = tmpls.Lookup("addDialog.html.templ")
 }
 
 func (h *{{.ModelName}}Handler) table(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +56,7 @@ func (h *{{.ModelName}}Handler) table(w http.ResponseWriter, r *http.Request) {
 		"Rows": items,
 	}
 
-	ext.WriteTemplate(w, "./{{.modelName}}/table.html.templ", data)
+	ext.WriteTemplate(w, tableTemplate, data)
 }
 
 func (h *{{.ModelName}}Handler) editDialog(w http.ResponseWriter, r *http.Request) {
@@ -57,11 +79,11 @@ func (h *{{.ModelName}}Handler) editDialog(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ext.WriteTemplate(w, "./{{.modelName}}/editDialog.html.templ", item)
+	ext.WriteTemplate(w, editDialogTemplate, item)
 }
 
 func (h *{{.ModelName}}Handler) addDialog(w http.ResponseWriter, r *http.Request) {
-	ext.WriteTemplate(w, "./{{.modelName}}/addDialog.html.templ", nil)
+	ext.WriteTemplate(w, addDialogTemplate, nil)
 }
 
 func (h *{{.ModelName}}Handler) list(w http.ResponseWriter, r *http.Request) {

@@ -65,7 +65,7 @@ func extractStructsFromFolder(appFolder string) ([]StructDef, error) {
 			return nil
 		}
 
-		slog.Info("reading from:", path)
+		slog.Debug("Extracting from: " + path)
 
 		file, err := parser.ParseFile(fset, path, nil, 0)
 
