@@ -12,6 +12,14 @@
 </head>
 
 <body>
+    <aside>
+        <nav>
+            {{- range .NavLinks}}
+            <a href="{{.Href}}">{{.Label}}</a>
+            {{- end}}
+        </nav>
+    </aside>
+
     <main class="column">
         <h2>{{.ModelName}}s</h2>
 

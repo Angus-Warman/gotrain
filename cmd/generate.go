@@ -239,11 +239,18 @@ func generateBoilerplateForModel(appPath, modelName string) error {
 		return err
 	}
 
+	navLinks, err := navBarLinks(appPath)
+
+	if err != nil {
+		return err
+	}
+
 	data := map[string]any{
 		"projectName": ext.ProjectName(appPath),
 		"ModelName":   modelName,
 		"modelName":   modelLower,
 		"Properties":  modelProperties,
+		"NavLinks":    navLinks,
 	}
 
 	standardTemplates := []string{
@@ -318,6 +325,37 @@ func findModelNames(appPath string) ([]string, error) {
 	return modelNames, err
 }
 
+type Link struct {
+	Href  string
+	Label string
+}
+
+func navBarLinks(appPath string) ([]Link, error) {
+	modelNames, err := findModelNames(appPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	links := []Link{
+		{
+			Href:  "/",
+			Label: "Home",
+		},
+	}
+
+	for _, modelName := range modelNames {
+		link := Link{
+			Label: ext.CapitaliseFirst(modelName),
+			Href:  fmt.Sprintf("/%v", modelName),
+		}
+
+		links = append(links, link)
+	}
+
+	return links, nil
+}
+
 func updateAddHandlers(appPath string) error {
 	slog.Debug("Updating AddHandlers.go")
 
@@ -347,11 +385,6 @@ func updateAddHandlers(appPath string) error {
 func updateIndexHtml(appPath string) error {
 	slog.Debug("Updating index.html")
 
-	type Link struct {
-		Href  string
-		Label string
-	}
-
 	asideTemplate := template.Must(template.New("aside").Parse(`<aside> <!-- Auto-generated nav-bar, remove this comment to deactivate -->
         <nav>
             {{- range .}}
@@ -368,28 +401,6 @@ func updateIndexHtml(appPath string) error {
 		return nil
 	}
 
-	modelNames, err := findModelNames(appPath)
-
-	if err != nil {
-		return err
-	}
-
-	links := []Link{
-		{
-			Href:  "/",
-			Label: "Home",
-		},
-	}
-
-	for _, modelName := range modelNames {
-		link := Link{
-			Label: ext.CapitaliseFirst(modelName),
-			Href:  fmt.Sprintf("/%v", modelName),
-		}
-
-		links = append(links, link)
-	}
-
 	currentBytes, err := os.ReadFile(indexHtmlPath)
 
 	if err != nil {
@@ -403,6 +414,12 @@ func updateIndexHtml(appPath string) error {
 
 	if !strings.Contains(currentHTML, sentinel) {
 		return nil
+	}
+
+	links, err := navBarLinks(appPath)
+
+	if err != nil {
+		return err
 	}
 
 	var buf bytes.Buffer
