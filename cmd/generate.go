@@ -1,16 +1,13 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
-	"text/template"
 
 	"github.com/Angus-Warman/gotrain/config"
 	"github.com/Angus-Warman/gotrain/database"
@@ -385,52 +382,37 @@ func updateAddHandlers(appPath string) error {
 func updateIndexHtml(appPath string) error {
 	slog.Debug("Updating index.html")
 
-	asideTemplate := template.Must(template.New("aside").Parse(`<aside> <!-- Auto-generated nav-bar, remove this comment to deactivate -->
-        <nav>
-            {{- range .}}
-            <a href="{{.Href}}">{{.Label}}</a>
-            {{- end}}
-        </nav>
-    </aside>`))
-
-	indexHtmlPath := filepath.Join(appPath, "public", "index.html")
-
-	_, err := os.Stat(indexHtmlPath)
-
-	if err != nil {
-		return nil
-	}
-
-	currentBytes, err := os.ReadFile(indexHtmlPath)
-
-	if err != nil {
-		return err
-	}
-
-	currentHTML := string(currentBytes)
-
-	// Check for sentinel comment
-	const sentinel = "<!-- Auto-generated nav-bar, remove this comment to deactivate -->"
-
-	if !strings.Contains(currentHTML, sentinel) {
-		return nil
-	}
-
 	links, err := navBarLinks(appPath)
 
 	if err != nil {
 		return err
 	}
 
-	var buf bytes.Buffer
-	err = asideTemplate.Execute(&buf, links)
+	indexHtmlPath := filepath.Join(appPath, "public", "index.html")
+
+	currentBytes, err := os.ReadFile(indexHtmlPath)
+
+	// If file already exists, check for flag comment
+	if err == nil {
+		currentHTML := string(currentBytes)
+		flagComment := "<!-- This file will be updated whenever a new model is added, unless this comment is removed -->"
+
+		if !strings.HasPrefix(currentHTML, flagComment) {
+			slog.Debug("Leaving index.html unchanged, flag comment not found")
+			return nil
+		}
+	}
+
+	data := map[string]any{
+		"projectName": ext.ProjectName(appPath),
+		"NavLinks":    links,
+	}
+
+	err = filing.WriteTemplateToFolderForce("index.html", "public", data)
 
 	if err != nil {
 		return err
 	}
 
-	re := regexp.MustCompile(`(?s)<aside>\s*<!--\s*Auto-generated.*?-->\s*.*?</aside>`)
-	updated := re.ReplaceAllString(currentHTML, buf.String())
-
-	return os.WriteFile(indexHtmlPath, []byte(updated), 0644)
+	return nil
 }

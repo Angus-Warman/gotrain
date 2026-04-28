@@ -11,8 +11,10 @@ import (
 	"github.com/Angus-Warman/gotrain/config"
 )
 
-//go:embed templates
-var templatesFS embed.FS
+//go:embed templates/*.templ
+var templateFiles embed.FS
+
+var templateSet = template.Must(template.ParseFS(templateFiles, "templates/*.templ"))
 
 func WriteTemplate(target string, data map[string]any) error {
 	appPath := config.AppPath
@@ -29,9 +31,9 @@ func WriteTemplate(target string, data map[string]any) error {
 		}
 	}
 
-	templatePath := "templates/" + target + ".templ"
+	templateName := target + ".templ"
 
-	return writeTemplateForce(filePath, templatePath, data)
+	return writeTemplateForce(templateName, filePath, data)
 }
 
 func WriteTemplateToFolder(target, subFolder string, data map[string]any) error {
@@ -49,9 +51,9 @@ func WriteTemplateToFolder(target, subFolder string, data map[string]any) error 
 		}
 	}
 
-	templatePath := "templates/" + target + ".templ"
+	templateName := target + ".templ"
 
-	return writeTemplateForce(filePath, templatePath, data)
+	return writeTemplateForce(templateName, filePath, data)
 }
 
 func WriteTemplateToFolderForce(target, subFolder string, data map[string]any) error {
@@ -63,9 +65,9 @@ func WriteTemplateToFolderForce(target, subFolder string, data map[string]any) e
 
 	filePath := filepath.Join(appPath, subFolder, target)
 
-	templatePath := "templates/" + target + ".templ"
+	templateName := target + ".templ"
 
-	return writeTemplateForce(filePath, templatePath, data)
+	return writeTemplateForce(templateName, filePath, data)
 }
 
 func WriteMetaTemplateToFolder(target, subFolder string, data map[string]any) error {
@@ -83,12 +85,12 @@ func WriteMetaTemplateToFolder(target, subFolder string, data map[string]any) er
 		}
 	}
 
-	templatePath := "templates/" + target // Already has .templ, and should keep it
+	templateName := target // Already has .templ, and should keep it
 
-	return writeTemplateForce(dstPath, templatePath, data)
+	return writeTemplateForce(templateName, dstPath, data)
 }
 
-func writeTemplateForce(dstPath, templatePath string, data map[string]any) error {
+func writeTemplateForce(templateName, dstPath string, data map[string]any) error {
 	dstFolder := filepath.Dir(dstPath)
 
 	err := os.MkdirAll(dstFolder, 0o755)
@@ -96,15 +98,18 @@ func writeTemplateForce(dstPath, templatePath string, data map[string]any) error
 		return err
 	}
 
-	tmpl, err := template.ParseFS(templatesFS, templatePath)
+	tmpl := templateSet.Lookup(templateName)
+
+	if tmpl == nil {
+		return fmt.Errorf("No template with name %s", templateName)
+	}
+
+	f, err := os.Create(dstPath)
+
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(dstPath)
-	if err != nil {
-		return err
-	}
 	defer f.Close()
 
 	return tmpl.Execute(f, data)

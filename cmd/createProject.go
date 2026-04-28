@@ -118,7 +118,6 @@ func copyDefaultFiles(appPath string) error {
 	slog.Debug("Copying default files")
 
 	publicFiles := []string{
-		"index.html",
 		"styles.css",
 		"htmx-2.0.8.js",
 		"hx-ext-json-enc-2.0.1.js",
@@ -156,6 +155,12 @@ func copyDefaultFiles(appPath string) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func generateIndexHtml(appPath string) error {
+	slog.Debug("Generating index.html")
 
 	return nil
 }

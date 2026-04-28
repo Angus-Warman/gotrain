@@ -1,13 +1,15 @@
+<!-- This file will be updated whenever a new model is added, unless this comment is removed -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>{{.ModelName}}s</title>
+    <title>{{ .projectName }}</title>
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
 
+    <link rel="stylesheet" href="/styles.css" />
     <script src="/htmx-2.0.8.js"></script>
     <script src="/hx-ext-json-enc-2.0.1.js"></script>
 </head>
@@ -21,18 +23,9 @@
         </nav>
     </aside>
 
-    <main class="column">
-        <h2>{{.ModelName}}s</h2>
-
-        <div class="row right">
-            <button hx-get="/dialog/add-{{ .modelName }}" hx-target="#dialog-host">Add</button>
-        </div>
-
-        <table hx-get="/table/{{.modelName}}" hx-trigger="load, refresh-table from:body">
-        </table>
+    <main>
+        <h2>{{ .projectName }}</h2>
     </main>
-
-    <div id="dialog-host" hx-on::after-settle="this.querySelector('dialog').showModal();"></div>
 </body>
 
 </html>
