@@ -15,7 +15,7 @@ func AddCommands(root *cobra.Command) {
 
 func requiresAppPath(cmd *cobra.Command, args []string) error {
 	if config.AppPath == "" {
-		return fmt.Errorf("app path --path (-p) is required")
+		return fmt.Errorf("--project (-p) is required")
 	}
 
 	return nil
@@ -23,7 +23,7 @@ func requiresAppPath(cmd *cobra.Command, args []string) error {
 
 func requiresAppPathAndDBPath(cmd *cobra.Command, args []string) error {
 	if config.AppPath == "" {
-		return fmt.Errorf("--path (-p) is required")
+		return fmt.Errorf("--project (-p) is required")
 	}
 
 	if config.DBPath == "" {

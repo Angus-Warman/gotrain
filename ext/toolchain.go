@@ -2,6 +2,7 @@ package ext
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 )
 
@@ -22,6 +23,8 @@ func GoFmt(appPath string) error {
 }
 
 func GoModuleSetup(appPath string) error {
+	slog.Debug("Creating go module")
+
 	projectName := ProjectName(appPath)
 
 	err := runCommand(appPath, "go", "mod", "init", projectName)
@@ -40,6 +43,8 @@ func GoModuleSetup(appPath string) error {
 }
 
 func GitRepoSetup(appPath string) error {
+	slog.Debug("Creating git repo")
+
 	err := runCommand(appPath, "git", "init")
 
 	if err != nil {

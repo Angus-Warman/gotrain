@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,7 +23,7 @@ type sqlLogger struct{ w *bytes.Buffer }
 func (l sqlLogger) Trace(_ context.Context, _ time.Time,
 	fc func() (string, int64), _ error) {
 	sql, _ := fc()
-	log.Println(sql)
+	slog.Debug(sql)
 
 	if !strings.HasPrefix(sql, "SELECT") {
 		fmt.Fprintf(l.w, "%s;\n", sql)
@@ -35,6 +35,8 @@ func (l sqlLogger) Warn(context.Context, string, ...any)             {}
 func (l sqlLogger) Error(context.Context, string, ...any)            {}
 
 func GenerateMigration(appFolder string) error {
+	slog.Debug("Generating migrations...")
+
 	migrationsFolder := path.Join(appFolder, "migrations")
 
 	err := setupMigrationsFolder(migrationsFolder)
@@ -75,7 +77,7 @@ func GenerateMigration(appFolder string) error {
 	}
 
 	if buf.Len() == 0 {
-		log.Println("No schema changes detected")
+		slog.Info("No schema changes detected")
 		return nil
 	}
 
@@ -96,7 +98,7 @@ func GenerateMigration(appFolder string) error {
 		return err
 	}
 
-	log.Printf("Migration written to %s", fileName)
+	slog.Debug("Migration written to %s", "file", fileName)
 
 	return err
 }
@@ -146,7 +148,7 @@ func RunMigrations(db *gorm.DB, appPath string) error {
 			return err
 		}
 
-		log.Printf("Applied %s", f)
+		slog.Info("Applied %s", "migration", f)
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -25,10 +26,12 @@ func main() {
 	err := rootCmd.Execute()
 
 	if err != nil {
-		fmt.Println(err)
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 }
+
+var verbose = false
 
 func addFlags(root *cobra.Command) {
 	root.PersistentFlags().StringVarP(
@@ -54,9 +57,21 @@ func addFlags(root *cobra.Command) {
 		false,
 		"overwrite existing files",
 	)
+
+	root.PersistentFlags().BoolVarP(
+		&verbose,
+		"verbse",
+		"v",
+		false,
+		"log every step",
+	)
 }
 
 func handleFlags(cmd *cobra.Command, args []string) error {
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
 	projectPathSet := cmd.Flags().Changed("project")
 
 	if !projectPathSet {

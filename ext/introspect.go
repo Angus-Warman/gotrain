@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"log/slog"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -64,7 +65,7 @@ func extractStructsFromFolder(appFolder string) ([]StructDef, error) {
 			return nil
 		}
 
-		fmt.Println("reading from:", path)
+		slog.Info("reading from:", path)
 
 		file, err := parser.ParseFile(fset, path, nil, 0)
 

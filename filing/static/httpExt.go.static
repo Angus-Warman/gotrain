@@ -3,7 +3,7 @@ package ext
 import (
 	"encoding/json"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 )
@@ -51,13 +51,18 @@ func WriteTemplate(w http.ResponseWriter, templatePath string, data any) {
 }
 
 func WriteError(w http.ResponseWriter, err error) {
-	log.Println(err)
+	slog.Error("request error", "err", err)
 	w.WriteHeader(500)
 	w.Write([]byte(err.Error()))
 }
 
 func WriteMessage(w http.ResponseWriter, status int, message string) {
-	log.Println(status, message)
+	if (status >= 400) {
+		slog.Warn("response", slog.Int("status", status), slog.String("message", message))
+	} else {
+		slog.Debug("response", slog.Int("status", status), slog.String("message", message))
+	}
+
 	w.WriteHeader(status)
 	w.Write([]byte(message))
 }

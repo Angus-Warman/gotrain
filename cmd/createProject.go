@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -38,10 +39,14 @@ func folderIsEmpty(path string) bool {
 }
 
 func clearFolder(path string) error {
+	slog.Debug("Clearing folder")
+
 	entries, err := os.ReadDir(path)
+
 	if err != nil {
 		return err
 	}
+
 	for _, entry := range entries {
 		err = os.RemoveAll(filepath.Join(path, entry.Name()))
 		if err != nil {
@@ -52,6 +57,8 @@ func clearFolder(path string) error {
 }
 
 func createNewProjectCmd(cmd *cobra.Command, args []string) error {
+	slog.Debug("Creating new project")
+
 	appPath := config.AppPath
 
 	if !folderIsEmpty(appPath) {
@@ -66,8 +73,6 @@ func createNewProjectCmd(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-
-	fmt.Println("Generating files...")
 
 	err := copyDefaultFiles(appPath)
 
@@ -87,8 +92,6 @@ func createNewProjectCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Creating go module...")
-
 	err = ext.GoModuleSetup(appPath)
 
 	if err != nil {
@@ -101,20 +104,19 @@ func createNewProjectCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Initialising git repo...")
-
 	err = ext.GitRepoSetup(appPath)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Project setup complete")
-
+	slog.Info("Project created")
 	return nil
 }
 
 func copyDefaultFiles(appPath string) error {
+	slog.Debug("Copying default files")
+
 	publicFiles := []string{
 		"index.html",
 		"styles.css",
@@ -159,6 +161,8 @@ func copyDefaultFiles(appPath string) error {
 }
 
 func generateMain(appPath string) error {
+	slog.Debug("Generating main.go")
+
 	target := "main.go"
 
 	data := map[string]any{

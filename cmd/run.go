@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -30,7 +30,7 @@ func addRunCommands(root *cobra.Command) {
 }
 
 func runMigrationsCmd(cmd *cobra.Command, args []string) error {
-	fmt.Println("Running migrations...")
+	slog.Debug("Running migrations")
 
 	folder := filepath.Dir(config.DBPath)
 
@@ -46,7 +46,12 @@ func runMigrationsCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	database.RunMigrations(db, config.AppPath)
+	err = database.RunMigrations(db, config.AppPath)
 
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Migrations complete")
 	return nil
 }

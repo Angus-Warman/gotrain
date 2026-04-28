@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -62,7 +64,7 @@ func createModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Model created")
+	slog.Info("Created model: " + modelName)
 	return nil
 }
 
@@ -133,7 +135,15 @@ func createModelProperties(propertyStrings []string) ([]ModelProperty, error) {
 	return properties, nil
 }
 
+var bannedModelNames = []string{
+	"ext",
+	"gen",
+	"public",
+}
+
 func createModel(appPath, modelName string, propertyStrings []string) error {
+	slog.Debug("Creating model: " + modelName)
+
 	if appPath == "" || modelName == "" {
 		return fmt.Errorf("Missing parameters")
 	}
@@ -145,6 +155,10 @@ func createModel(appPath, modelName string, propertyStrings []string) error {
 	modelName = ext.CapitaliseFirst(modelName)
 
 	modelLower := strings.ToLower(modelName)
+
+	if slices.Contains(bannedModelNames, modelLower) {
+		return fmt.Errorf("Cannot create model with name %v", modelLower)
+	}
 
 	modelFolder := filepath.Join(appPath, modelLower)
 
@@ -184,9 +198,14 @@ func createModel(appPath, modelName string, propertyStrings []string) error {
 }
 
 func generateMigrationCmd(cmd *cobra.Command, args []string) error {
-	fmt.Println("Generating migrations...")
+	err := database.GenerateMigration(config.AppPath)
 
-	return database.GenerateMigration(config.AppPath)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Generated migrations")
+	return nil
 }
 
 func generateBoilerplateCmd(cmd *cobra.Command, args []string) error {
@@ -204,11 +223,13 @@ func generateBoilerplateCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Boilerplate generated")
+	slog.Info("Generated boilerplate for: " + modelName)
 	return nil
 }
 
 func generateBoilerplateForModel(appPath, modelName string) error {
+	slog.Debug("Generating boilerplate for: " + modelName)
+
 	modelName = ext.CapitaliseFirst(modelName)
 	modelLower := strings.ToLower(modelName)
 
@@ -298,6 +319,8 @@ func findModelNames(appPath string) ([]string, error) {
 }
 
 func updateAddHandlers(appPath string) error {
+	slog.Debug("Updating AddHandlers.go")
+
 	projectName := ext.ProjectName(appPath)
 	modelNames, err := findModelNames(appPath)
 
@@ -322,6 +345,8 @@ func updateAddHandlers(appPath string) error {
 }
 
 func updateIndexHtml(appPath string) error {
+	slog.Debug("Updating index.html")
+
 	type Link struct {
 		Href  string
 		Label string

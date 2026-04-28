@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,7 +35,8 @@ func main() {
 	db, err := openDB(dbPath)
 
 	if err != nil {
-		log.Fatalf("failed to open db: %v", err)
+		slog.Error("failed to open db", "err", err)
+		os.Exit(1)
 	}
 
 	mux := http.NewServeMux()
@@ -54,7 +55,7 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	log.Printf("listening on http://localhost:%s", port)
+	slog.Info("listening", "url", fmt.Sprintf("http://localhost:%s", port))
 
 	ListenUntilShutdown(srv)
 }
@@ -79,7 +80,11 @@ func logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		log.Printf("%s %s (%s)", r.Method, r.URL.Path, time.Since(start))
+		slog.Info("request",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Duration("elapsed", time.Since(start)),
+		)
 	})
 }
 
@@ -92,21 +97,22 @@ func ListenUntilShutdown(srv *http.Server) {
 		err := srv.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
-			log.Fatalln(err)
+			slog.Error("server error", "err", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-signalChannel
-	log.Println("Shutting down...")
+	slog.Info("shutting down")
 
 	// Give in-flight requests time to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Println("Disgraceful shutdown:", err)
+		slog.Error("disgraceful shutdown", "err", err)
 		_ = srv.Close()
 	}
 
-	log.Println("Goodbye")
+	slog.Info("goodbye")
 }
