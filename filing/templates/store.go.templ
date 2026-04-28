@@ -1,0 +1,65 @@
+package {{.modelName}}
+
+import (
+	"context"
+	"errors"
+
+	"gorm.io/gorm"
+)
+
+type {{.ModelName}}Store struct {
+	db *gorm.DB
+}
+
+func New{{.ModelName}}Store(db *gorm.DB) *{{.ModelName}}Store {
+	return &{{.ModelName}}Store{db: db}
+}
+
+func (s *{{.ModelName}}Store) List(ctx context.Context, limit, offset int) ([]{{.ModelName}}, error) {
+	var items []{{.ModelName}}
+
+	tx := s.db.WithContext(ctx).Model(&{{.ModelName}}{})
+
+	if limit > 0 {
+		tx = tx.Limit(limit)
+	}
+	if offset > 0 {
+		tx = tx.Offset(offset)
+	}
+
+	if err := tx.Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+func (s *{{.ModelName}}Store) Get(ctx context.Context, id uint) (*{{.ModelName}}, error) {
+	var item {{.ModelName}}
+
+	err := s.db.WithContext(ctx).First(&item, id).Error
+
+	if err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func (s *{{.ModelName}}Store) Create(ctx context.Context, e *{{.ModelName}}) error {
+	return s.db.WithContext(ctx).Create(e).Error
+}
+
+func (s *{{.ModelName}}Store) Update(ctx context.Context, id uint, e *{{.ModelName}}) error {
+	e.ID = id
+	return s.db.WithContext(ctx).Save(e).Error
+}
+
+func (s *{{.ModelName}}Store) Delete(ctx context.Context, id uint) error {
+	return s.db.WithContext(ctx).Delete(&{{.ModelName}}{}, id).Error
+}

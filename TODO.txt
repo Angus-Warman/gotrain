@@ -1,0 +1,21 @@
+- index.html.templ
+    - Copied verbatim?
+- CSS
+    - layout.css for primitives
+    - saas-dashboard.css
+    - hacker-console.css
+    - dream-diary.css
+    - neon-glass.css
+    - formal-attire.css
+
+Plan:
+gotrain
+> New or returning?
+> Baseline or template?
+> Chatroom, SAAS Dashboard, User Generated Content
+
+gotrain create model User username:required:unique email:required:unique dob:date
+gotrain generate migration
+gotrain run migration
+go run .
+air

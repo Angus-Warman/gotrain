@@ -1,0 +1,139 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+)
+
+func addDevTools(mux *http.ServeMux) http.Handler {
+	mux.HandleFunc("/__reload", handleReloadEventSource)
+
+	return injectHotReload(mux)
+}
+
+func handleReloadEventSource(w http.ResponseWriter, r *http.Request) {
+	// Required SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, ": ping\n\n")
+	flusher.Flush()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	ctx := r.Context()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// client disconnected
+			return
+
+		case <-ticker.C:
+			fmt.Fprint(w, ": ping\n\n")
+			flusher.Flush()
+		}
+	}
+}
+
+const hotReloadScript = `
+<script>
+
+console.log("Hot reload enabled")
+
+let events = new EventSource("/__reload");
+
+let hasConnected = false;
+
+let hasDisconnected = false;
+
+events.onopen = () => {
+	if (hasDisconnected) {
+		console.log("Reloading...");
+		window.location.reload();
+	}
+
+	console.log("Connected")
+	hasConnected = true;
+};
+
+events.onerror = (e) => {
+	hasDisconnected = true
+	console.log("Disconnected")
+}
+</script>
+`
+
+type capture struct {
+	http.ResponseWriter
+	status int
+	buf    bytes.Buffer
+}
+
+func (c *capture) WriteHeader(status int) {
+	c.status = status
+}
+
+func (c *capture) Write(b []byte) (int, error) {
+	return c.buf.Write(b)
+}
+
+func (c *capture) Flush() {
+	if f, ok := c.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func injectHotReload(mux *http.ServeMux) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isHTMX := r.Header.Get("HX-Request") == "true"
+
+		if isHTMX {
+			mux.ServeHTTP(w, r)
+			return
+		}
+
+		isStream := strings.Contains(r.Header.Get("Accept"), "text/event-stream")
+
+		if isStream {
+			mux.ServeHTTP(w, r)
+			return
+		}
+
+		c := &capture{ResponseWriter: w, status: 200}
+		mux.ServeHTTP(c, r)
+
+		body := c.buf.Bytes()
+
+		isHTML := strings.Contains(w.Header().Get("Content-Type"), "text/html")
+
+		if isHTML {
+			lower := strings.ToLower(string(body))
+			i := strings.LastIndex(lower, "</body>")
+
+			if i != -1 {
+				body = append(body[:i], append([]byte(hotReloadScript), body[i:]...)...)
+			} else {
+				body = append(body, hotReloadScript...)
+			}
+
+			w.Header().Del("Content-Length")
+		}
+
+		w.WriteHeader(c.status)
+		w.Write(body)
+	})
+}

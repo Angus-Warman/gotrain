@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{.ModelName}}s</title>
+
+    <meta name="color-scheme" content="dark" />
+    <link rel="stylesheet" href="/styles.css" />
+
+    <script src="/htmx-2.0.8.js"></script>
+    <script src="/hx-ext-json-enc-2.0.1.js"></script>
+</head>
+
+<body>
+    <main class="column">
+        <h2>{{.ModelName}}s</h2>
+
+        <div class="row right">
+            <button hx-get="/dialog/add-{{ .modelName }}" hx-target="#dialog-host">Add</button>
+        </div>
+
+        <table hx-get="/table/{{.modelName}}" hx-trigger="load, refresh-table from:body">
+        </table>
+    </main>
+
+    <div id="dialog-host" hx-on::after-settle="this.querySelector('dialog').showModal();"></div>
+</body>
+
+</html>

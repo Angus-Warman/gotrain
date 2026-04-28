@@ -25,6 +25,3 @@ go.work.sum
 .idea/
 .vscode/
 tmp/
-
-# build
-gotrain

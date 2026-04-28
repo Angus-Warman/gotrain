@@ -1,11 +1,12 @@
-package db
+package ext
 
 import (
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
+	"io/fs"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -22,8 +23,8 @@ type StructDef struct {
 	Fields []FieldDef
 }
 
-func ParseModels(modelFolder string) (map[string]any, error) {
-	structs, err := extractStructsFromFolder(modelFolder)
+func ParseModels(appFolder string) (map[string]any, error) {
+	structs, err := extractStructsFromFolder(appFolder)
 
 	if err != nil {
 		return nil, err
@@ -34,56 +35,94 @@ func ParseModels(modelFolder string) (map[string]any, error) {
 	return instances, nil
 }
 
-func extractStructsFromFolder(modelFolder string) ([]StructDef, error) {
+func ParseModel(modelFilePath string) ([]FieldDef, error) {
 	fset := token.NewFileSet()
-
-	pkgs, err := parser.ParseDir(fset, modelFolder, func(f os.FileInfo) bool {
-		return strings.HasSuffix(f.Name(), ".go") && !strings.HasSuffix(f.Name(), "_test.go")
-	}, 0)
+	file, err := parser.ParseFile(fset, modelFilePath, nil, 0)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var structs []StructDef
-	for _, pkg := range pkgs {
-		for _, file := range pkg.Files {
-			fmt.Println("reading from:", file.Name.Name)
-			structs = append(structs, extractStructs(file)...)
-		}
+	structs := extractStructs(file)
+
+	if len(structs) != 1 {
+		return nil, fmt.Errorf("Invalid number of structs in model file")
 	}
-	return structs, nil
+
+	return structs[0].Fields, nil
+}
+
+func extractStructsFromFolder(appFolder string) ([]StructDef, error) {
+	fset := token.NewFileSet()
+	var allStructs []StructDef
+
+	err := filepath.WalkDir(appFolder, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || d.Name() != "model.go" {
+			return nil
+		}
+
+		fmt.Println("reading from:", path)
+
+		file, err := parser.ParseFile(fset, path, nil, 0)
+
+		if err != nil {
+			return fmt.Errorf("parsing %s: %w", path, err)
+		}
+
+		structs := extractStructs(file)
+
+		allStructs = append(allStructs, structs...)
+
+		return nil
+	})
+
+	return allStructs, err
 }
 
 func extractStructs(file *ast.File) []StructDef {
 	var out []StructDef
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		typeSpec, ok := n.(*ast.TypeSpec)
+
 		if !ok {
 			return true
 		}
+
 		structType, ok := typeSpec.Type.(*ast.StructType)
+
 		if !ok {
 			return true
 		}
 
 		s := StructDef{Name: typeSpec.Name.Name}
+
 		for _, field := range structType.Fields.List {
+
 			typeName := exprToString(field.Type)
+
 			tag := ""
+
 			if field.Tag != nil {
 				tag = strings.Trim(field.Tag.Value, "`")
 			}
+
 			if len(field.Names) == 0 {
 				// Embedded field (e.g. gorm.Model)
 				s.Fields = append(s.Fields, FieldDef{Name: "", Type: typeName, Tag: tag})
 				continue
 			}
+
 			for _, name := range field.Names {
 				s.Fields = append(s.Fields, FieldDef{Name: name.Name, Type: typeName, Tag: tag})
 			}
 		}
+
 		out = append(out, s)
+
 		return true
 	})
 	return out
@@ -107,23 +146,23 @@ func exprToString(expr ast.Expr) string {
 // typeMap covers the common cases. Unknown types fall back to string
 // unless a gorm:"type:..." tag is present to carry the DDL hint.
 var typeMap = map[string]reflect.Type{
-	"string":     reflect.TypeOf(""),
-	"bool":       reflect.TypeOf(false),
-	"int":        reflect.TypeOf(int(0)),
-	"int8":       reflect.TypeOf(int8(0)),
-	"int16":      reflect.TypeOf(int16(0)),
-	"int32":      reflect.TypeOf(int32(0)),
-	"int64":      reflect.TypeOf(int64(0)),
-	"uint":       reflect.TypeOf(uint(0)),
-	"uint8":      reflect.TypeOf(uint8(0)),
-	"uint16":     reflect.TypeOf(uint16(0)),
-	"uint32":     reflect.TypeOf(uint32(0)),
-	"uint64":     reflect.TypeOf(uint64(0)),
-	"float32":    reflect.TypeOf(float32(0)),
-	"float64":    reflect.TypeOf(float64(0)),
-	"time.Time":  reflect.TypeOf(time.Time{}),
-	"*time.Time": reflect.TypeOf((*time.Time)(nil)),
-	"[]byte":     reflect.TypeOf([]byte{}),
+	"string":     reflect.TypeFor[string](),
+	"bool":       reflect.TypeFor[bool](),
+	"int":        reflect.TypeFor[int](),
+	"int8":       reflect.TypeFor[int8](),
+	"int16":      reflect.TypeFor[int16](),
+	"int32":      reflect.TypeFor[int32](),
+	"int64":      reflect.TypeFor[int64](),
+	"uint":       reflect.TypeFor[uint](),
+	"uint8":      reflect.TypeFor[uint8](),
+	"uint16":     reflect.TypeFor[uint16](),
+	"uint32":     reflect.TypeFor[uint32](),
+	"uint64":     reflect.TypeFor[uint64](),
+	"float32":    reflect.TypeFor[float32](),
+	"float64":    reflect.TypeFor[float64](),
+	"time.Time":  reflect.TypeFor[time.Time](),
+	"*time.Time": reflect.TypeFor[*time.Time](),
+	"[]byte":     reflect.TypeFor[[]byte](),
 }
 
 func buildInstances(structs []StructDef) map[string]any {
@@ -144,13 +183,13 @@ func buildType(s StructDef) reflect.Type {
 		if !ok {
 			// Unknown type: fall back to string.
 			// If the field has a gorm:"type:..." tag, GORM will use that for DDL.
-			rt = reflect.TypeOf("")
+			rt = reflect.TypeFor[string]()
 		}
 		sf := reflect.StructField{
 			Type: rt,
 		}
 		if f.Name == "" {
-			// Embedded — mark it anonymous
+			// Embedded - mark it anonymous
 			sf.Anonymous = true
 			sf.Name = lastName(f.Type)
 		} else {

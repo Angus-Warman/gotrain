@@ -1,0 +1,92 @@
+:root {
+    --bg: #0d0f0d;
+    --panel: #111411;
+    --border: #1f2a1f;
+    --text: #00ff88;
+    --dim: #1aff9c;
+    --highlight: #00ff88;
+    --shadow: rgba(0, 255, 136, 0.2);
+    --font: "Courier New", Courier, monospace;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.6;
+}
+
+/* Scanline effect */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(to bottom,
+            rgba(0, 255, 136, 0.03),
+            rgba(0, 255, 136, 0.03) 1px,
+            transparent 1px,
+            transparent 3px);
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* <section> plays the role of Cards in modern-ish design */
+section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    box-shadow: 0 0 10px var(--shadow);
+    border-radius: 6px;
+    position: relative;
+    min-width: 0;
+}
+
+/* A custom element, divides into two columns on large screens */
+responsive {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    responsive {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+a {
+    color: var(--dim);
+}
+
+a:hover {
+    text-shadow: 0 0 5px var(--highlight);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--highlight);
+}
+
+main {
+    margin: 1rem;
+}
+
+article {
+    margin: 1rem;
+}

@@ -1,4 +1,4 @@
-package db
+package database
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Angus-Warman/gotrain/ext"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -33,11 +34,10 @@ func (l sqlLogger) Info(context.Context, string, ...any)             {}
 func (l sqlLogger) Warn(context.Context, string, ...any)             {}
 func (l sqlLogger) Error(context.Context, string, ...any)            {}
 
-func GenerateMigration(appPath string) error {
-	migrationsPath := path.Join(appPath, "migrations")
-	modelsPath := path.Join(appPath, "models")
+func GenerateMigration(appFolder string) error {
+	migrationsFolder := path.Join(appFolder, "migrations")
 
-	err := os.MkdirAll(migrationsPath, 0755)
+	err := setupMigrationsFolder(migrationsFolder)
 
 	if err != nil {
 		return err
@@ -51,10 +51,14 @@ func GenerateMigration(appPath string) error {
 	}
 
 	// 2. Replay existing migrations in order
-	runMigrations(db, migrationsPath)
+	err = RunMigrations(db, migrationsFolder)
+
+	if err != nil {
+		return err
+	}
 
 	// 3. Find and parse the models
-	models, err := ParseModels(modelsPath)
+	models, err := ext.ParseModels(appFolder)
 
 	if err != nil {
 		return err
@@ -84,7 +88,7 @@ func GenerateMigration(appPath string) error {
 
 	fileName := fmt.Sprintf("%d_%s.sql", time.Now().UTC().Unix(), slug)
 
-	filePath := path.Join(migrationsPath, fileName)
+	filePath := path.Join(migrationsFolder, fileName)
 
 	err = os.WriteFile(filePath, buf.Bytes(), 0644)
 
@@ -97,13 +101,22 @@ func GenerateMigration(appPath string) error {
 	return err
 }
 
-func runMigrationsForReal(db *gorm.DB, appPath string) error {
-	migrationsPath := path.Join(appPath, "migrations")
+func setupMigrationsFolder(migrationsFolder string) error {
+	err := os.MkdirAll(migrationsFolder, 0755)
 
-	return runMigrations(db, migrationsPath)
+	if err != nil {
+		return err
+	}
+
+	src := "./static/0_CREATE_TABLE___migrations.sql"
+	dst := path.Join(migrationsFolder, "0_CREATE_TABLE___migrations.sql")
+
+	return ext.Copy(src, dst)
 }
 
-func runMigrations(db *gorm.DB, migrationsPath string) error {
+func RunMigrations(db *gorm.DB, appPath string) error {
+	migrationsPath := filepath.Join(appPath, "migrations")
+
 	glob := path.Join(migrationsPath, "*.sql")
 
 	existing, err := filepath.Glob(glob)
@@ -140,8 +153,9 @@ func runMigrations(db *gorm.DB, migrationsPath string) error {
 }
 
 func semiAutoMigrate(db *gorm.DB, models map[string]any) error {
-	for name, model := range models {
-		err := db.Table(name).AutoMigrate(model)
+	for modelName, model := range models {
+		tableName := modelName + "s"
+		err := db.Table(tableName).AutoMigrate(model)
 
 		if err != nil {
 			return err

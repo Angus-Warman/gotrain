@@ -1,0 +1,29 @@
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+
+            {{- range .Properties }}
+            <th>{{ .Name }}</th>
+            {{- end }}
+
+            <th></th> <!-- Actions -->
+        </tr>
+    </thead>
+    <tbody>
+        {{"{{"}}- range .Rows {{"}}"}}
+        <tr>
+            <td>{{"{{"}} .ID {{"}}"}}</td>
+
+            {{- range .Properties }}
+            <td>{{"{{"}} .{{ .Name }} {{"}}"}}</td>
+            {{- end }}
+
+            <td>
+                <button hx-get="/dialog/edit-{{ .modelName }}/{{"{{"}} .ID {{"}}"}}" hx-target="#dialog-host" />Edit</button>
+                <button hx-delete="/api/{{ .modelName }}/{{"{{"}} .ID {{"}}"}}" hx-confirm="Delete {{ .ModelName }} {{"{{"}} .ID {{"}}"}}?" />Delete</button>
+            </td>
+        </tr>
+        {{"{{"}}- end {{"}}"}}
+    </tbody>
+</table>

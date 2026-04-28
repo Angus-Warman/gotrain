@@ -1,0 +1,8 @@
+package {{.modelName}}
+
+type {{.ModelName}} struct {
+	ID uint `gorm:"not null"`
+	{{- range .properties}}
+	{{ .Name }} {{ .Type }} {{ .Tag }}
+	{{- end}}
+}

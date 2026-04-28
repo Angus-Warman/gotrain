@@ -1,0 +1,196 @@
+package {{.modelName}}
+
+import (
+	"net/http"
+	"strconv"
+
+	"gorm.io/gorm"
+
+	"{{.projectName}}/ext"
+)
+
+type {{.ModelName}}Handler struct {
+	store {{.ModelName}}Store
+}
+
+func (h *{{.ModelName}}Handler) page(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./{{.modelName}}/page.html")
+}
+
+func (h *{{.ModelName}}Handler) table(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	offset, _ := strconv.Atoi(q.Get("offset"))
+
+	items, err := h.store.List(r.Context(), limit, offset)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	data := map[string]any{
+		"Rows": items,
+	}
+
+	ext.WriteTemplate(w, "./{{.modelName}}/table.html.templ", data)
+}
+
+func (h *{{.ModelName}}Handler) editDialog(w http.ResponseWriter, r *http.Request) {
+	id, ok := ext.ParseID(r)
+
+	if !ok {
+		ext.WriteMessage(w, 400, "invalid ID")
+		return
+	}
+
+	item, err := h.store.Get(r.Context(), id)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	if item == nil {
+		ext.WriteMessage(w, 404, "not found")
+		return
+	}
+
+	ext.WriteTemplate(w, "./{{.modelName}}/editDialog.html.templ", item)
+}
+
+func (h *{{.ModelName}}Handler) addDialog(w http.ResponseWriter, r *http.Request) {
+	ext.WriteTemplate(w, "./{{.modelName}}/addDialog.html.templ", nil)
+}
+
+func (h *{{.ModelName}}Handler) list(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	offset, _ := strconv.Atoi(q.Get("offset"))
+
+	items, err := h.store.List(r.Context(), limit, offset)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	ext.WriteJSON(w, items)
+}
+
+func (h *{{.ModelName}}Handler) get(w http.ResponseWriter, r *http.Request) {
+	id, ok := ext.ParseID(r)
+
+	if !ok {
+		ext.WriteMessage(w, 400, "invalid ID")
+		return
+	}
+
+	item, err := h.store.Get(r.Context(), id)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	if item == nil {
+		ext.WriteMessage(w, 404, "not found")
+		return
+	}
+
+	ext.WriteJSON(w, item)
+}
+
+func (h *{{.ModelName}}Handler) create(w http.ResponseWriter, r *http.Request) {
+	var payload {{.ModelName}}
+
+	err := ext.ReadJSON(r, &payload)
+
+	if err != nil {
+		ext.WriteMessage(w, 400, "invalid json")
+		return
+	}
+
+	err = h.store.Create(r.Context(), &payload)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("HX-Trigger", "refresh-table")
+
+	ext.WriteMessage(w, http.StatusCreated, "created")
+}
+
+func (h *{{.ModelName}}Handler) update(w http.ResponseWriter, r *http.Request) {
+	id, ok := ext.ParseID(r)
+
+	if !ok {
+		ext.WriteMessage(w, 400, "invalid ID")
+		return
+	}
+
+	var payload {{.ModelName}}
+
+	err := ext.ReadJSON(r, &payload)
+
+	if err != nil {
+		ext.WriteMessage(w, 400, "invalid json")
+		return
+	}
+
+	err = h.store.Update(r.Context(), id, &payload)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("HX-Trigger", "refresh-table")
+
+	ext.WriteMessage(w, http.StatusOK, "updated")
+}
+
+func (h *{{.ModelName}}Handler) delete(w http.ResponseWriter, r *http.Request) {
+	id, ok := ext.ParseID(r)
+
+	if !ok {
+		ext.WriteMessage(w, 400, "invalid ID")
+		return
+	}
+
+	err := h.store.Delete(r.Context(), id)
+
+	if err != nil {
+		ext.WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("HX-Trigger", "refresh-table")
+
+	ext.WriteMessage(w, http.StatusNoContent, "deleted")
+}
+
+func AddHandler(mux *http.ServeMux, db *gorm.DB) {
+	store := {{.ModelName}}Store{db: db}
+	h := &{{.ModelName}}Handler{store: store}
+
+	// Page
+	mux.HandleFunc("GET /{{.modelName}}", h.page)
+
+	// Components
+	mux.HandleFunc("GET /table/{{.modelName}}", h.table)
+	mux.HandleFunc("GET /dialog/add-{{.modelName}}", h.addDialog)
+	mux.HandleFunc("GET /dialog/edit-{{.modelName}}/{id}", h.editDialog)
+
+	// Endpoints
+	mux.HandleFunc("GET /api/{{.modelName}}", h.list)
+	mux.HandleFunc("GET /api/{{.modelName}}/{id}", h.get)
+	mux.HandleFunc("POST /api/{{.modelName}}", h.create)
+	mux.HandleFunc("PUT /api/{{.modelName}}/{id}", h.update)
+	mux.HandleFunc("PATCH /api/{{.modelName}}/{id}", h.update)
+	mux.HandleFunc("DELETE /api/{{.modelName}}/{id}", h.delete)
+}
