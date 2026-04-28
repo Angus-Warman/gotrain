@@ -65,73 +65,6 @@ func createModelCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-type ModelProperty struct {
-	Name string
-	Type string
-	Tag  string
-}
-
-func createModelProperty(propertyString string) (ModelProperty, error) {
-	parts := strings.Split(propertyString, ":")
-
-	name := parts[0]
-	name = ext.CapitaliseFirst(name)
-
-	typeString := "string" // Default
-
-	tags := []string{}
-
-	for _, part := range parts[1:] {
-		switch part {
-		case "required":
-			tags = append(tags, "not null")
-
-		case "unique":
-			tags = append(tags, "unique")
-
-		case "int":
-			typeString = "int"
-
-		case "number":
-			typeString = "float32"
-
-		case "float":
-			typeString = "float32"
-		}
-	}
-
-	tag := ""
-
-	if len(tags) > 0 {
-		gormTags := strings.Join(tags, ";")
-		tag = fmt.Sprintf("`gorm:\"%v\"`", gormTags)
-	}
-
-	property := ModelProperty{
-		Name: name,
-		Type: typeString,
-		Tag:  tag,
-	}
-
-	return property, nil
-}
-
-func createModelProperties(propertyStrings []string) ([]ModelProperty, error) {
-	properties := make([]ModelProperty, len(propertyStrings))
-
-	for i, propertyString := range propertyStrings {
-		property, err := createModelProperty(propertyString)
-
-		if err != nil {
-			return nil, err
-		}
-
-		properties[i] = property
-	}
-
-	return properties, nil
-}
-
 var bannedModelNames = []string{
 	"ext",
 	"gen",
@@ -165,7 +98,7 @@ func createModel(appPath, modelName string, propertyStrings []string) error {
 		return err
 	}
 
-	modelProperties, err := createModelProperties(propertyStrings)
+	modelProperties, err := modelPropertiesFromStrings(propertyStrings)
 
 	if err != nil {
 		return err

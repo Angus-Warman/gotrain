@@ -220,14 +220,14 @@ func TestSQL_AddColumn_ExactSQL(t *testing.T) {
 	v2 := reflect.StructOf([]reflect.StructField{
 		{Name: "ID", Type: reflect.TypeFor[uint]()},
 		{Name: "Name", Type: reflect.TypeFor[string]()},
-		{Name: "Email", Type: reflect.TypeFor[string]()},
+		{Name: "Contact_Email", Type: reflect.TypeFor[string]()},
 	})
 
 	if err := semiAutoMigrate(db, map[string]any{"User": reflect.New(v2).Interface()}); err != nil {
 		t.Fatalf("v2 migration: %v", err)
 	}
 
-	want := "ALTER TABLE `Users` ADD `email` text;\n"
+	want := "ALTER TABLE `Users` ADD `contact_email` text;\n"
 	if buf.String() != want {
 		t.Errorf("SQL mismatch\nwant: %q\n got: %q", want, buf.String())
 	}
@@ -284,17 +284,17 @@ func TestSQL_ParseModels_MatchesStaticStruct(t *testing.T) {
 	err := os.WriteFile(modelPath, []byte(`package model
 
 type User struct {
-	ID    uint
-	Name  string
-	Email string
+	ID            uint
+	Name          string
+	Contact_Email string
 }
 `), 0644)
 
 	// Equivalent as a real struct
 	type User struct {
-		ID    uint
-		Name  string
-		Email string
+		ID            uint
+		Name          string
+		Contact_Email string
 	}
 
 	if err != nil {

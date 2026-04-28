@@ -1,11 +1,82 @@
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/Angus-Warman/gotrain/ext"
 )
+
+type ModelProperty struct {
+	Name string
+	Type string
+	Tag  string
+}
+
+func createModelProperty(propertyString string) (ModelProperty, error) {
+	parts := strings.Split(propertyString, ":")
+
+	name := parts[0]
+	name = ext.CapitaliseFirst(name)
+
+	typeString := "string" // Default
+
+	tags := []string{}
+
+	for _, part := range parts[1:] {
+		switch part {
+		case "required":
+			tags = append(tags, "not null")
+
+		case "unique":
+			tags = append(tags, "unique")
+
+		case "int":
+			fallthrough
+		case "integer":
+			typeString = "int"
+
+		case "number":
+			fallthrough
+		case "real":
+			fallthrough
+		case "float":
+			typeString = "float32"
+		}
+	}
+
+	tag := ""
+
+	if len(tags) > 0 {
+		gormTags := strings.Join(tags, ";")
+		tag = fmt.Sprintf("`gorm:\"%v\"`", gormTags)
+	}
+
+	property := ModelProperty{
+		Name: name,
+		Type: typeString,
+		Tag:  tag,
+	}
+
+	return property, nil
+}
+
+func modelPropertiesFromStrings(propertyStrings []string) ([]ModelProperty, error) {
+	properties := make([]ModelProperty, len(propertyStrings))
+
+	for i, propertyString := range propertyStrings {
+		property, err := createModelProperty(propertyString)
+
+		if err != nil {
+			return nil, err
+		}
+
+		properties[i] = property
+	}
+
+	return properties, nil
+}
 
 var htmlTypeMap = map[string]string{
 	"string":    "text",
