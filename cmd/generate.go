@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/Angus-Warman/gotrain/config"
 	"github.com/Angus-Warman/gotrain/database"
@@ -177,12 +180,6 @@ func createModel(appPath, modelName string, propertyStrings []string) error {
 		return err
 	}
 
-	err = updateAddHandlers(appPath)
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -256,7 +253,23 @@ func generateBoilerplateForModel(appPath, modelName string) error {
 		}
 	}
 
-	err = updateAddHandlers(appPath)
+	err = updateSharedFiles(appPath)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateSharedFiles(appPath string) error {
+	err := updateAddHandlers(appPath)
+
+	if err != nil {
+		return err
+	}
+
+	err = updateIndexHtml(appPath)
 
 	if err != nil {
 		return err
@@ -306,4 +319,76 @@ func updateAddHandlers(appPath string) error {
 	}
 
 	return nil
+}
+
+func updateIndexHtml(appPath string) error {
+	type Link struct {
+		Href  string
+		Label string
+	}
+
+	asideTemplate := template.Must(template.New("aside").Parse(`<aside> <!-- Auto-generated nav-bar, remove this comment to deactivate -->
+        <nav>
+            {{- range .}}
+            <a href="{{.Href}}">{{.Label}}</a>
+            {{- end}}
+        </nav>
+    </aside>`))
+
+	indexHtmlPath := filepath.Join(appPath, "public", "index.html")
+
+	_, err := os.Stat(indexHtmlPath)
+
+	if err != nil {
+		return nil
+	}
+
+	modelNames, err := findModelNames(appPath)
+
+	if err != nil {
+		return err
+	}
+
+	links := []Link{
+		{
+			Href:  "/",
+			Label: "Home",
+		},
+	}
+
+	for _, modelName := range modelNames {
+		link := Link{
+			Label: ext.CapitaliseFirst(modelName),
+			Href:  fmt.Sprintf("/%v", modelName),
+		}
+
+		links = append(links, link)
+	}
+
+	currentBytes, err := os.ReadFile(indexHtmlPath)
+
+	if err != nil {
+		return err
+	}
+
+	currentHTML := string(currentBytes)
+
+	// Check for sentinel comment
+	const sentinel = "<!-- Auto-generated nav-bar, remove this comment to deactivate -->"
+
+	if !strings.Contains(currentHTML, sentinel) {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	err = asideTemplate.Execute(&buf, links)
+
+	if err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(`(?s)<aside>\s*<!--\s*Auto-generated.*?-->\s*.*?</aside>`)
+	updated := re.ReplaceAllString(currentHTML, buf.String())
+
+	return os.WriteFile(indexHtmlPath, []byte(updated), 0644)
 }

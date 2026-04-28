@@ -81,6 +81,12 @@ func createNewProjectCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	err = updateSharedFiles(appPath)
+
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("Creating go module...")
 
 	err = ext.GoModuleSetup(appPath)
@@ -160,12 +166,6 @@ func generateMain(appPath string) error {
 	}
 
 	err := filing.WriteTemplate(target, data)
-
-	if err != nil {
-		return err
-	}
-
-	err = updateAddHandlers(config.AppPath)
 
 	if err != nil {
 		return err
