@@ -22,7 +22,7 @@ func TestModelPropertiesFromStrings(t *testing.T) {
 				{Name: "Name", Type: "string", Tag: ""},
 				{Name: "Age", Type: "int", Tag: ""},
 				{Name: "Score", Type: "float32", Tag: ""},
-				{Name: "Active", Type: "string", Tag: ""},
+				{Name: "Active", Type: "bool", Tag: ""},
 			},
 		},
 		{

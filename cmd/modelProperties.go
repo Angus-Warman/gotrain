@@ -43,6 +43,17 @@ func createModelProperty(propertyString string) (ModelProperty, error) {
 			fallthrough
 		case "float":
 			typeString = "float32"
+
+		case "bool":
+			fallthrough
+		case "boolean":
+			fallthrough
+		case "yes/no":
+			fallthrough
+		case "y/n":
+			fallthrough
+		case "true/false":
+			typeString = "bool"
 		}
 	}
 
