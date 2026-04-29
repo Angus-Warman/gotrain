@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Angus-Warman/gotrain/ext"
 	"github.com/Angus-Warman/gotrain/filing"
+	"github.com/Angus-Warman/gotrain/parse"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -61,7 +61,7 @@ func GenerateMigration(appPath string) error {
 	}
 
 	// 3. Find and parse the models
-	models, err := ext.ParseModels(appPath)
+	models, err := parse.ParseModels(appPath)
 
 	if err != nil {
 		return err

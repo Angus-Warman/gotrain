@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Angus-Warman/gotrain/ext"
+	"github.com/Angus-Warman/gotrain/parse"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -302,7 +302,7 @@ type User struct {
 	}
 
 	// Parse it the same way GenerateMigration does.
-	models, err := ext.ParseModels(dir)
+	models, err := parse.ParseModels(dir)
 	if err != nil {
 		t.Fatalf("ParseModels: %v", err)
 	}

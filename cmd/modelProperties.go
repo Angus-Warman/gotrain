@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Angus-Warman/gotrain/ext"
+	"github.com/Angus-Warman/gotrain/parse"
 )
 
 type ModelProperty struct {
@@ -122,7 +123,7 @@ func getModelProperties(appPath, modelName string) ([]Property, error) {
 	modelName = strings.ToLower(modelName)
 
 	filePath := filepath.Join(appPath, modelName, "model.go")
-	fields, err := ext.ParseModel(filePath)
+	fields, err := parse.ParseModel(filePath)
 
 	if err != nil {
 		return nil, err
