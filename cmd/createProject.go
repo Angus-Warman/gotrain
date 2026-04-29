@@ -119,8 +119,10 @@ func copyDefaultFiles(appPath string) error {
 
 	publicFiles := []string{
 		"styles.css",
+		"layout.css",
 		"htmx-2.0.8.js",
 		"hx-ext-json-enc-2.0.1.js",
+		"theme/minimal-modern.css", // TODO: Allow selecting themes
 	}
 
 	for _, file := range publicFiles {

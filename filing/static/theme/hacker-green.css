@@ -1,16 +1,12 @@
 :root {
     --bg: #0d0f0d;
+    --text: #00ff88;
     --panel: #111411;
     --border: #1f2a1f;
-    --text: #00ff88;
     --dim: #1aff9c;
     --highlight: #00ff88;
     --shadow: rgba(0, 255, 136, 0.2);
     --font: "Courier New", Courier, monospace;
-}
-
-* {
-    box-sizing: border-box;
 }
 
 html,
@@ -37,8 +33,7 @@ body::before {
     z-index: 9999;
 }
 
-/* <section> plays the role of Cards in modern-ish design */
-section {
+.card {
     background: var(--panel);
     border: 1px solid var(--border);
     padding: 1.5rem;
@@ -48,8 +43,8 @@ section {
     min-width: 0;
 }
 
-/* A custom element, divides into two columns on large screens */
-responsive {
+/* Divides into two columns on large screens */
+.responsive {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -58,7 +53,7 @@ responsive {
 }
 
 @media (min-width: 768px) {
-    responsive {
+    .responsive {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -81,12 +76,4 @@ a:hover {
 
 ::-webkit-scrollbar-thumb {
     background: var(--highlight);
-}
-
-main {
-    margin: 1rem;
-}
-
-article {
-    margin: 1rem;
 }
